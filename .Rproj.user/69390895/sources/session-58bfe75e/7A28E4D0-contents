@@ -1,0 +1,612 @@
+---
+title: "Dossier"
+author: "Angel SINEAU"
+format: docx
+editor: visual
+---
+
+## Library
+
+```{r}
+library(readr)
+library(dplyr)
+library(purrr)
+library(visdat)
+library(tidyr)
+library(fPortfolio)
+library(ggplot2) 
+library(scales)
+library(ggrepel)
+library(extrafont);loadfonts() 
+library(corrplot)
+library(data.table)
+library(pspearman)
+library(PerformanceAnalytics)
+library(car)
+library(EnvStats)
+library(factoextra)
+library(FactoMineR)
+library(gridExtra)
+library(lmtest)
+library(AER)
+library(tseries)
+library(FinCal)
+library(moments)
+```
+
+## Création de la base de données :
+
+```{r}
+Amundi_CPR_Climate_Action_I <- read_csv("Amundi CPR Climate Action I.csv")
+  T1 <- select (Amundi_CPR_Climate_Action_I, Date, Close)
+  T1 <- T1 %>%
+   rename(T1 = Close)
+
+
+
+MainFirst_Global_Equities_X <- read_csv("MainFirst Global Equities X.csv")
+  T2 <- select (MainFirst_Global_Equities_X, Date, Close)
+  T2 <- T2 %>%
+    rename(T2 = Close)
+  
+
+ANDE <- read_csv("ANDE.csv")
+  T3 <- select (ANDE, Date, Close)
+  T3 <- T3 %>%
+    rename(T3 = Close)
+
+  
+Carmignac_Emergents <- read_csv("Carmignac Emergents.csv")
+  T4 <- select (Carmignac_Emergents, Date, Close)
+  T4 <- T4 %>%
+    rename(T4 = Close)
+  
+
+Pluvalca_Sustainable_Opportunities <- read_csv("Pluvalca Sustainable Opportunities.csv")
+  T5 <- select (Pluvalca_Sustainable_Opportunities, Date, Close)
+  T5 <- T5 %>%
+    rename(T5 = Close)
+
+
+Fidelity_Sustainable_Water_Waste_R_Acc <- read_csv("Fidelity Sustainable Water & Waste R Acc.csv")
+  T6 <- select (Fidelity_Sustainable_Water_Waste_R_Acc, Date, Close)
+  T6 <- T6 %>%
+    rename(T6 = Close)
+
+
+Epsens_EdR_Tricolore_Rendement <- read_csv("Epsens EdR Tricolore Rendement.csv")
+  T7 <- select (Epsens_EdR_Tricolore_Rendement, Date, Close)
+  T7 <- T7 %>%
+    rename(T7 = Close)
+
+
+Thematics_Water_RA_USD <- read_csv("Thematics Water RA USD.csv")
+  T8 <- select (Thematics_Water_RA_USD, Date, Close)
+  T8 <- T8 %>%
+    rename(T8 = Close)
+
+
+AIS_Mandarine_Global_Transition <- read_csv("AIS Mandarine Global Transition.csv")
+  T9 <- select (AIS_Mandarine_Global_Transition, Date, Close)
+  T9 <- T9 %>%
+    rename(T9 = Close)
+  
+  
+
+# Fusion des toutes les bases
+list_of_dataframes <- list(T1, T2, T3, T4, T5, T6, T7, T8, T9)
+BaseEA <- reduce(list_of_dataframes, ~full_join(.x, .y, by = "Date"))
+
+
+# Conversion des colonnes 2 à 10 en numeric
+BaseEA[, 2:10] <- lapply(BaseEA[, 2:10], as.numeric)
+
+
+# Suppression des lignes contenant au moins un NA
+BaseEA <- na.omit(BaseEA)
+
+
+#Vérification valeurs manquantes
+vis_miss(BaseEA)
+         
+str(BaseEA)
+```
+
+### Graphique de l'evolution du prix pour chaque fonds indiciel
+
+```{r}
+#T1
+mean_T1 <- mean(BaseEA$T1, na.rm = TRUE)
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T1, color = "Prix de T1")) +  
+  geom_hline(aes(yintercept = mean_T1, color = "Moyenne T1"), linetype = "dashed") +  # Ligne pour la moyenne avec esthétique
+  scale_color_manual(values = c("Prix de T1" = "dodgerblue1", "Moyenne T1" = "red")) +  # Définir les couleurs
+  labs(x = "Date", 
+       y = "Prix de l'actif T1", 
+       title = "Évolution du prix de l'actif T1",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",  
+       caption = "Data source: Yahoo Finance",
+       color = "Légende :") +
+  theme_minimal() +
+  theme(legend.position = "right",
+        plot.title = element_text(color = "dodgerblue1", face = "bold")) 
+
+
+
+#T2
+mean_T2 <- mean(BaseEA$T2, na.rm = TRUE)
+BaseEA$Mean_T2 <- mean_T2
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T2, color = "Prix de T2"), size = 1) +
+  geom_line(aes(y = Mean_T2, color = "Moyenne"), linetype = "dashed", size = 1) +
+  labs(x = "Date", 
+       y = "Prix de l'actif T2", 
+       title = "Évolution du Prix de l'Actif T2",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T2" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T2" = "Prix de T2", "Moyenne" = "Moyenne"))
+
+
+
+#T3
+mean_T3 <- mean(BaseEA$T3, na.rm = TRUE)
+BaseEA$Mean_T3 <- mean_T3
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T3, color = "Prix de T3"), size = 1) +
+  geom_line(aes(y = Mean_T3, color = "Moyenne"), linetype = "dashed", size = 1) +
+  labs(x = "Date", 
+       y = "Prix de l'actif T3", 
+       title = "Évolution du Prix de l'Actif T3",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T3" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T3" = "Prix de T3", "Moyenne" = "Moyenne"))
+
+
+
+#T4
+mean_T4 <- mean(BaseEA$T4, na.rm = TRUE)
+BaseEA$Mean_T4 <- mean_T4
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T4, color = "Prix de T4"), size = 1) +
+  geom_line(aes(y = Mean_T4, color = "Moyenne"), linetype = "dashed", size = 1) +
+  labs(x = "Date", 
+       y = "Prix de l'actif T4", 
+       title = "Évolution du Prix de l'Actif T4",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T4" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T4" = "Prix de T4", "Moyenne" = "Moyenne"))
+
+
+
+#T5
+mean_T5 <- mean(BaseEA$T5, na.rm = TRUE)
+BaseEA$Mean_T5 <- mean_T5
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T5, color = "Prix de T5"), size = 1) +
+  geom_line(aes(y = Mean_T5, color = "Moyenne"), linetype = "dashed", size = 1) +
+  labs(x = "Date", 
+       y = "Prix de l'actif T5", 
+       title = "Évolution du Prix de l'Actif T5",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T5" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T5" = "Prix de T5", "Moyenne" = "Moyenne"))
+
+
+
+#T6
+mean_T6 <- mean(BaseEA$T6, na.rm = TRUE)
+BaseEA$Mean_T6 <- mean_T6
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T6, color = "Prix de T6"), size = 1) +
+  geom_line(aes(y = Mean_T6, color = "Moyenne"), linetype = "dashed", size = 1) +
+  labs(x = "Date", 
+       y = "Prix de l'actif T6", 
+       title = "Évolution du Prix de l'Actif T6",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T6" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T6" = "Prix de T6", "Moyenne" = "Moyenne"))
+
+
+
+#T7 
+mean_T7 <- mean(BaseEA$T7, na.rm = TRUE)
+
+BaseEA$Mean_T7 <- mean_T7  
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T7, color = "Prix de T7"), size = 1) +  
+  geom_line(aes(y = Mean_T7, color = "Moyenne"), linetype = "dashed", size = 1) +  
+  labs(x = "Date", 
+       y = "Prix de l'actif T7", 
+       title = "Évolution du Prix de l'Actif T7",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T7" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T7" = "Prix de T7", "Moyenne" = "Moyenne"))
+
+
+#T8
+mean_T8 <- mean(BaseEA$T8, na.rm = TRUE)
+
+BaseEA$Mean_T8 <- mean_T8  
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T8, color = "Prix de T8"), size = 1) +  
+  geom_line(aes(y = Mean_T8, color = "Moyenne"), linetype = "dashed", size = 1) +  
+  labs(x = "Date", 
+       y = "Prix de l'actif T8", 
+       title = "Évolution du Prix de l'Actif T8",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T8" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T8" = "Prix de T8", "Moyenne" = "Moyenne"))
+
+
+
+#T9
+mean_T9 <- mean(BaseEA$T9, na.rm = TRUE)
+
+
+BaseEA$Mean_T9 <- mean_T9  
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T9, color = "Prix de T9"), size = 1) +  
+  geom_line(aes(y = Mean_T9, color = "Moyenne"), linetype = "dashed", size = 1) +  
+  labs(x = "Date", 
+       y = "Prix de l'actif T9", 
+       title = "Évolution du Prix de l'Actif T9",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T9" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T9" = "Prix de T9", "Moyenne" = "Moyenne"))
+
+```
+
+### 
+
+### Calcul des Rendements :
+
+```{r}
+
+library(dplyr)
+
+# Calcul des rendements pour chaque titre T1 à T9
+BaseEA <- BaseEA %>%
+  mutate(across(T1:T9, ~c(NA, diff(.) / head(., -1)), .names = "rendement_{.col}"))
+
+# Vérifier le résultat
+head(BaseEA)
+
+
+```
+
+### Représentation graphique des rendements :
+
+```{r}
+
+#T1 T2 T3
+ggplot() +
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T1, color = "T1"), size = 0.1) +  # Ligne pour le rendement de T1
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T2, color = "T2"), size = 0.1) +  # Ligne pour le rendement de T2
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T3, color = "T3"), size = 0.1) +  # Ligne pour le rendement de T3
+  scale_color_manual(values = c("T1" = "blue", "T2" = "green", "T3" = "red")) +  # Définir les couleurs des lignes
+  labs(x = "Date", 
+       y = "Rendement", 
+       title = "Rendements des titres T1, T2 et T3",
+       subtitle = "Du 1er janvier au 31 décembre 2023",
+       color = "Titre") +  
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"), 
+        legend.position = "right")  
+
+
+#T4 T5 T6
+ggplot() +
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T4, color = "T4"), size = 0.1) +  
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T5, color = "T5"), size = 0.1) +  
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T6, color = "T6"), size = 0.1) +  
+  scale_color_manual(values = c("T4" = "blue", "T5" = "green", "T6" = "red")) +  
+  labs(x = "Date", 
+       y = "Rendement", 
+       title = "Rendements des titres T4, T5 et T6",
+       subtitle = "Du 1er janvier au 31 décembre 2023",
+       color = "Titre") +  
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"), 
+        legend.position = "right")  
+
+
+#T7 T8 T9
+ggplot() +
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T7, color = "T7"), size = 0.1) +  
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T8, color = "T8"), size = 0.1) +  
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T9, color = "T9"), size = 0.1) +  
+  scale_color_manual(values = c("T7" = "blue", "T8" = "green", "T9" = "red")) +  
+  labs(x = "Date", 
+       y = "Rendement", 
+       title = "Rendements des titres T7, T8 et T9",
+       subtitle = "Du 1er janvier au 31 décembre 2023",
+       color = "Titre") +  
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"), 
+        legend.position = "right")  
+```
+
+### Tous les rendements :
+
+```{r}
+
+BaseEA_long <- BaseEA %>%
+  select(Date, starts_with("rendement_T")) %>%
+  gather(key = "Titre", value = "Rendement", -Date)
+
+ggplot(BaseEA_long, aes(x = Date, y = Rendement, color = Titre)) + 
+  geom_line() +
+  theme_minimal() +
+  labs(x = "Date", 
+       y = "Rendement", 
+       title = "Évolution des rendements des titres T1 à T9 au cours du temps") +
+  theme(legend.position = "right")
+```
+
+### 1 par 1 :
+
+```{r}
+
+BaseEA_long <- BaseEA %>%
+  select(Date, starts_with("rendement_T")) %>%
+  gather(key = "Titre", value = "Rendement", -Date)
+
+ggplot(BaseEA_long, aes(x = Date, y = Rendement)) + 
+  geom_line() +
+  facet_wrap(~ Titre, scales = "free_y", ncol = 3) +  
+  theme_minimal() +
+  labs(x = "Date", 
+       y = "Rendement", 
+       title = "Évolution des rendements des titres T1 à T9 au cours du temps")
+```
+
+### Boxplots de chaque fonds :
+
+```{r}
+
+
+par(mfrow = c(3, 3))
+
+for(i in 2:10) {
+  boxplot(BaseEA[[i]], main = names(BaseEA)[i], col = "deepskyblue3")
+}
+
+str(BaseEA$T1)
+
+```
+
+Chaque boxplot montre la distribution des valeurs pour un fond spécifique, avec la ligne médiane représentant la valeur médiane, les bords de la boîte indiquant le premier et le troisième quartile, et les moustaches s'étendant aux valeurs les plus éloignées dans la plage acceptable. Les points en dehors des moustaches indiquent des valeurs aberrantes.
+
+Ces boxplots sont utiles pour comparer la dispersion, la tendance centrale, et identifier les fonds avec des valeurs aberrantes ou une volatilité plus élevée.
+
+En observant les boxplots que vous avez fournis pour les actifs T1 à T9, voici des commentaires qui pourraient s'intégrer dans votre rapport :
+
+-   **Actif T1** : La distribution des prix de l'actif T1 montre une médiane inférieure à la moyenne, indiquant une distribution légèrement asymétrique avec une queue plus lourde sur la droite. La présence de peu de valeurs aberrantes indique que les prix extrêmes ne sont pas communs pour cet actif.
+
+-   **Actif T2** : L'actif T2 présente une distribution plus symétrique, avec une médiane proche du centre de la boîte, indiquant une répartition plus équilibrée des prix. Les moustaches sont proportionnellement longues, suggérant une volatilité modérée.
+
+-   **Actif T3** : Ce fonds montre une distribution dont la médiane est proche du premier quartile, ce qui pourrait indiquer une asymétrie positive, avec des valeurs majoritairement concentrées vers le bas de la distribution.
+
+-   **Actif T4** : La distribution des prix de l'actif T4 est assez étendue, comme en témoigne la longueur de la boîte. Cela peut indiquer une variabilité relativement élevée des prix. La médiane se situe légèrement au-dessus du milieu de la boîte.
+
+-   **Actif T5** : Les prix de l'actif T5 montrent une distribution étroite avec des moustaches relativement courtes, indiquant une volatilité plus faible. La médiane est centrée, suggérant une distribution symétrique.
+
+-   **Actif T6** : L'actif T6 révèle également une distribution symétrique avec une volatilité modérée. La boîte est plus centrée, et il n'y a pas de valeurs aberrantes visibles.
+
+-   **Actif T7** : La distribution des prix de l'actif T7 est serrée avec des moustaches courtes, indiquant une faible volatilité. La médiane est centrée, ce qui montre une distribution équilibrée des données.
+
+-   **Actif T8** : Pour l'actif T8, les prix sont plus variés, avec des moustaches qui s'étendent davantage. La médiane se trouve près du premier quartile, indiquant une légère asymétrie vers des valeurs inférieures.
+
+-   **Actif T9** : Enfin, l'actif T9 affiche une distribution relativement symétrique et équilibrée des prix, avec une boîte de taille moyenne et des moustaches proportionnées.
+
+Ces boxplots fournissent des indications importantes sur la dispersion et la tendance des prix de chaque actif. Les médianes positionnées près des bords inférieurs de certaines boîtes pourraient révéler une tendance des prix à graviter vers des valeurs inférieures, tandis que les boîtes plus larges signalent une plus grande dispersion des prix. La présence ou l'absence de valeurs aberrantes dans ces graphiques peut être révélatrice de la fréquence des événements de prix extrêmes et de la stabilité relative des actifs analysés.
+
+### Statistiques descriptives :
+
+```{r}
+
+calculer_stats <- function(data) {
+  return(list(
+    Moyenne = mean(data, na.rm = TRUE),
+    Variance = var(data, na.rm = TRUE),
+    Ecart_Type = sd(data, na.rm = TRUE),
+    Asymetrie = skewness(data, na.rm = TRUE),
+    Kurtosis = kurtosis(data, na.rm = TRUE)
+  ))
+}
+
+
+stats_T1 = calculer_stats(BaseEA$T1)
+stats_T2 = calculer_stats(BaseEA$T2)
+stats_T3 = calculer_stats(BaseEA$T3)
+stats_T4 = calculer_stats(BaseEA$T4)
+stats_T5 = calculer_stats(BaseEA$T5)
+stats_T6 = calculer_stats(BaseEA$T6)
+stats_T7 = calculer_stats(BaseEA$T7)
+stats_T8 = calculer_stats(BaseEA$T8)
+stats_T9 = calculer_stats(BaseEA$T9)
+
+
+stats_T1
+stats_T2
+stats_T3
+stats_T4
+stats_T5
+stats_T6
+stats_T7
+stats_T8
+stats_T9
+
+mean(BaseEA$rendement_T1, na.rm = TRUE)
+mean(BaseEA$rendement_T2, na.rm = TRUE)
+mean(BaseEA$rendement_T3, na.rm = TRUE)
+mean(BaseEA$rendement_T4, na.rm = TRUE)
+mean(BaseEA$rendement_T5, na.rm = TRUE)
+mean(BaseEA$rendement_T6, na.rm = TRUE)
+mean(BaseEA$rendement_T7, na.rm = TRUE)
+mean(BaseEA$rendement_T8, na.rm = TRUE)
+mean(BaseEA$rendement_T9, na.rm = TRUE)
+
+```
+
+### 
+
+### Matrice Variance-Covariance :
+
+```{r}
+
+matrice_cov <- cov(BaseEA[, c("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9")], use = "pairwise.complete.obs")
+
+print(matrice_cov)
+
+
+```
+
+### Matrice de corrélation :
+
+```{r}
+
+rendements <- BaseEA %>% 
+  select(starts_with("rendement_T"))
+
+matrice_corr <- cor(rendements, use = "complete.obs")
+
+corrplot(matrice_corr, method = "circle", type = "upper", order = "hclust", 
+         addCoef.col = "black", tl.col = "black", tl.srt = 45)
+
+
+```
+
+### Mesures de la performance :
+
+**Sharpe :**
+
+```{r}
+
+risk_free_rate <- 0.005
+
+calcule_sharpe <- function(rendements) {
+  rendements <- rendements[-1]
+  excess_returns <- rendements - risk_free_rate
+  sharpe_ratio <- mean(excess_returns, na.rm = TRUE) / sd(excess_returns, na.rm = TRUE)
+  return(sharpe_ratio)
+}
+
+sharpe_ratios <- sapply(BaseEA[,paste0("rendement_T", 1:9)], calcule_sharpe)
+
+sharpe_ratios
+
+
+```
+
+**Création Base rendement seulement :**
+
+```{r}
+library(dplyr)
+
+Base_rdt <- BaseEA %>%
+  select(rendement_T1, rendement_T2, rendement_T3, rendement_T4, rendement_T5,
+         rendement_T6, rendement_T7, rendement_T8, rendement_T9)
+
+head(Base_rdt)
+
+```
+
+**Sortino :**
+
+```{r}
+calcule_sortino <- function(asset_returns, risk_free_rate) {
+  mean_return <- mean(asset_returns, na.rm = TRUE)
+  
+  negative_returns <- asset_returns - risk_free_rate
+  negative_returns[negative_returns > 0] <- 0
+  downside_deviation <- sqrt(mean(negative_returns^2, na.rm = TRUE))
+  
+  sortino_ratio <- (mean_return - risk_free_rate) / downside_deviation
+  return(sortino_ratio)
+}
+
+risk_free_rate <- 0.005
+
+sortino_ratios <- sapply(1:9, function(i) {
+  asset_returns <- BaseEA[[paste0("rendement_T", i)]]
+  calcule_sortino(asset_returns, risk_free_rate)
+})
+
+names(sortino_ratios) <- paste0("Sortino_T", 1:9)
+
+print(sortino_ratios)
+
+```
+
+**Roy :**
+
+```{r}
+calcule_roy <- function(asset_returns, risk_free_rate) {
+  mean_return <- mean(asset_returns, na.rm = TRUE)
+  sd_return <- sd(asset_returns, na.rm = TRUE)
+  roy_ratio <- (mean_return - risk_free_rate) / sd_return
+  return(roy_ratio)
+}
+
+risk_free_rate <- 0.005
+
+roy_ratios <- sapply(1:9, function(i) {
+  asset_returns <- BaseEA[[paste0("rendement_T", i)]]
+  calcule_roy(asset_returns, risk_free_rate)
+})
+
+names(roy_ratios) <- paste0("Roy_T", 1:9)
+
+print(roy_ratios)
+
+```

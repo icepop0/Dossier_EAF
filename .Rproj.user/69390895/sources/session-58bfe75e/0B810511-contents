@@ -1,0 +1,889 @@
+---
+title: "Annexe du dossier EAF"
+author: "Angel SINEAU"
+format: html
+editor: visual
+---
+
+## Library
+
+```{r}
+
+library(readr)
+library(dplyr)
+library(purrr)
+library(visdat)
+library(tidyr)
+library(fPortfolio)
+library(ggplot2) 
+library(scales)
+library(ggrepel)
+library(extrafont);loadfonts() 
+library(corrplot)
+library(data.table)
+library(pspearman)
+library(PerformanceAnalytics)
+library(car)
+library(EnvStats)
+library(factoextra)
+library(FactoMineR)
+library(gridExtra)
+library(lmtest)
+library(AER)
+library(tseries)
+library(FinCal)
+library(moments)
+
+
+
+```
+
+## Création de la base de données :
+
+```{r}
+Amundi_CPR_Climate_Action_I <- read_csv("Amundi CPR Climate Action I.csv")
+  T1 <- select (Amundi_CPR_Climate_Action_I, Date, Close)
+  T1 <- T1 %>%
+   rename(T1 = Close)
+
+
+
+MainFirst_Global_Equities_X <- read_csv("MainFirst Global Equities X.csv")
+  T2 <- select (MainFirst_Global_Equities_X, Date, Close)
+  T2 <- T2 %>%
+    rename(T2 = Close)
+  
+
+ANDE <- read_csv("ANDE.csv")
+  T3 <- select (ANDE, Date, Close)
+  T3 <- T3 %>%
+    rename(T3 = Close)
+
+  
+Carmignac_Emergents <- read_csv("Carmignac Emergents.csv")
+  T4 <- select (Carmignac_Emergents, Date, Close)
+  T4 <- T4 %>%
+    rename(T4 = Close)
+  
+
+Pluvalca_Sustainable_Opportunities <- read_csv("Pluvalca Sustainable Opportunities.csv")
+  T5 <- select (Pluvalca_Sustainable_Opportunities, Date, Close)
+  T5 <- T5 %>%
+    rename(T5 = Close)
+
+
+Fidelity_Sustainable_Water_Waste_R_Acc <- read_csv("Fidelity Sustainable Water & Waste R Acc.csv")
+  T6 <- select (Fidelity_Sustainable_Water_Waste_R_Acc, Date, Close)
+  T6 <- T6 %>%
+    rename(T6 = Close)
+
+
+Epsens_EdR_Tricolore_Rendement <- read_csv("Epsens EdR Tricolore Rendement.csv")
+  T7 <- select (Epsens_EdR_Tricolore_Rendement, Date, Close)
+  T7 <- T7 %>%
+    rename(T7 = Close)
+
+
+Thematics_Water_RA_USD <- read_csv("Thematics Water RA USD.csv")
+  T8 <- select (Thematics_Water_RA_USD, Date, Close)
+  T8 <- T8 %>%
+    rename(T8 = Close)
+
+
+AIS_Mandarine_Global_Transition <- read_csv("AIS Mandarine Global Transition.csv")
+  T9 <- select (AIS_Mandarine_Global_Transition, Date, Close)
+  T9 <- T9 %>%
+    rename(T9 = Close)
+  
+  
+
+# Fusion des toutes les bases
+list_of_dataframes <- list(T1, T2, T3, T4, T5, T6, T7, T8, T9)
+BaseEA <- reduce(list_of_dataframes, ~full_join(.x, .y, by = "Date"))
+
+
+# Conversion des colonnes 2 à 10 en numeric
+BaseEA[, 2:10] <- lapply(BaseEA[, 2:10], as.numeric)
+
+
+# Suppression des lignes contenant au moins un NA
+BaseEA <- na.omit(BaseEA)
+
+
+#Vérification valeurs manquantes
+vis_miss(BaseEA)
+         
+str(BaseEA)
+```
+
+## Partie 1 : Calcul de rendements, statistiques usuelles et performance des titres
+
+### Graphique de l'evolution du prix pour chaque fonds indiciel
+
+```{r}
+#T1
+mean_T1 <- mean(BaseEA$T1, na.rm = TRUE)
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T1, color = "Prix de T1")) +  
+  geom_hline(aes(yintercept = mean_T1, color = "Moyenne T1"), linetype = "dashed") +  # Ligne pour la moyenne avec esthétique
+  scale_color_manual(values = c("Prix de T1" = "dodgerblue1", "Moyenne T1" = "red")) +  # Définir les couleurs
+  labs(x = "Date", 
+       y = "Prix de l'actif T1", 
+       title = "Évolution du prix de l'actif T1",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",  
+       caption = "Data source: Yahoo Finance",
+       color = "Légende :") +
+  theme_minimal() +
+  theme(legend.position = "right",
+        plot.title = element_text(color = "dodgerblue1", face = "bold")) 
+
+
+
+#T2
+mean_T2 <- mean(BaseEA$T2, na.rm = TRUE)
+BaseEA$Mean_T2 <- mean_T2
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T2, color = "Prix de T2"), size = 1) +
+  geom_line(aes(y = Mean_T2, color = "Moyenne"), linetype = "dashed", size = 1) +
+  labs(x = "Date", 
+       y = "Prix de l'actif T2", 
+       title = "Évolution du Prix de l'Actif T2",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T2" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T2" = "Prix de T2", "Moyenne" = "Moyenne"))
+
+
+
+#T3
+mean_T3 <- mean(BaseEA$T3, na.rm = TRUE)
+BaseEA$Mean_T3 <- mean_T3
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T3, color = "Prix de T3"), size = 1) +
+  geom_line(aes(y = Mean_T3, color = "Moyenne"), linetype = "dashed", size = 1) +
+  labs(x = "Date", 
+       y = "Prix de l'actif T3", 
+       title = "Évolution du Prix de l'Actif T3",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T3" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T3" = "Prix de T3", "Moyenne" = "Moyenne"))
+
+
+
+#T4
+mean_T4 <- mean(BaseEA$T4, na.rm = TRUE)
+BaseEA$Mean_T4 <- mean_T4
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T4, color = "Prix de T4"), size = 1) +
+  geom_line(aes(y = Mean_T4, color = "Moyenne"), linetype = "dashed", size = 1) +
+  labs(x = "Date", 
+       y = "Prix de l'actif T4", 
+       title = "Évolution du Prix de l'Actif T4",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T4" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T4" = "Prix de T4", "Moyenne" = "Moyenne"))
+
+
+
+#T5
+mean_T5 <- mean(BaseEA$T5, na.rm = TRUE)
+BaseEA$Mean_T5 <- mean_T5
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T5, color = "Prix de T5"), size = 1) +
+  geom_line(aes(y = Mean_T5, color = "Moyenne"), linetype = "dashed", size = 1) +
+  labs(x = "Date", 
+       y = "Prix de l'actif T5", 
+       title = "Évolution du Prix de l'Actif T5",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T5" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T5" = "Prix de T5", "Moyenne" = "Moyenne"))
+
+
+
+#T6
+mean_T6 <- mean(BaseEA$T6, na.rm = TRUE)
+BaseEA$Mean_T6 <- mean_T6
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T6, color = "Prix de T6"), size = 1) +
+  geom_line(aes(y = Mean_T6, color = "Moyenne"), linetype = "dashed", size = 1) +
+  labs(x = "Date", 
+       y = "Prix de l'actif T6", 
+       title = "Évolution du Prix de l'Actif T6",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T6" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T6" = "Prix de T6", "Moyenne" = "Moyenne"))
+
+
+
+#T7 
+mean_T7 <- mean(BaseEA$T7, na.rm = TRUE)
+
+BaseEA$Mean_T7 <- mean_T7  
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T7, color = "Prix de T7"), size = 1) +  
+  geom_line(aes(y = Mean_T7, color = "Moyenne"), linetype = "dashed", size = 1) +  
+  labs(x = "Date", 
+       y = "Prix de l'actif T7", 
+       title = "Évolution du Prix de l'Actif T7",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T7" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T7" = "Prix de T7", "Moyenne" = "Moyenne"))
+
+
+#T8
+mean_T8 <- mean(BaseEA$T8, na.rm = TRUE)
+
+BaseEA$Mean_T8 <- mean_T8  
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T8, color = "Prix de T8"), size = 1) +  
+  geom_line(aes(y = Mean_T8, color = "Moyenne"), linetype = "dashed", size = 1) +  
+  labs(x = "Date", 
+       y = "Prix de l'actif T8", 
+       title = "Évolution du Prix de l'Actif T8",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T8" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T8" = "Prix de T8", "Moyenne" = "Moyenne"))
+
+
+
+#T9
+mean_T9 <- mean(BaseEA$T9, na.rm = TRUE)
+
+
+BaseEA$Mean_T9 <- mean_T9  
+
+ggplot(BaseEA, aes(x = Date)) + 
+  geom_line(aes(y = T9, color = "Prix de T9"), size = 1) +  
+  geom_line(aes(y = Mean_T9, color = "Moyenne"), linetype = "dashed", size = 1) +  
+  labs(x = "Date", 
+       y = "Prix de l'actif T9", 
+       title = "Évolution du Prix de l'Actif T9",
+       subtitle = "Du 1er janvier 2023 au 31 décembre 2023",
+       caption = "Data source: Yahoo Finance") +
+  theme_minimal() +
+  theme(plot.title = element_text(color = "dodgerblue1", face = "bold"), 
+        legend.position = "right") +
+  scale_color_manual(name = "Légende", 
+                     values = c("Prix de T9" = "dodgerblue1", "Moyenne" = "red"),
+                     labels = c("Prix de T9" = "Prix de T9", "Moyenne" = "Moyenne"))
+
+```
+
+### Calcul des Rendements :
+
+```{r}
+
+library(dplyr)
+
+# Calcul des rendements pour chaque titre T1 à T9
+BaseEA <- BaseEA %>%
+  mutate(across(T1:T9, ~c(NA, diff(.) / head(., -1)), .names = "rendement_{.col}"))
+
+# Vérifier le résultat
+head(BaseEA)
+View(BaseEA)
+
+
+```
+
+### Représentation graphique des rendements :
+
+```{r}
+
+#T1 T2 T3
+ggplot() +
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T1, color = "T1"), size = 0.1) +  # Ligne pour le rendement de T1
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T2, color = "T2"), size = 0.1) +  # Ligne pour le rendement de T2
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T3, color = "T3"), size = 0.1) +  # Ligne pour le rendement de T3
+  scale_color_manual(values = c("T1" = "blue", "T2" = "green", "T3" = "red")) +  # Définir les couleurs des lignes
+  labs(x = "Date", 
+       y = "Rendement", 
+       title = "Rendements des titres T1, T2 et T3",
+       subtitle = "Du 1er janvier au 31 décembre 2023",
+       color = "Titre") +  
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"), 
+        legend.position = "right")  
+
+
+#T4 T5 T6
+ggplot() +
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T4, color = "T4"), size = 0.1) +  
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T5, color = "T5"), size = 0.1) +  
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T6, color = "T6"), size = 0.1) +  
+  scale_color_manual(values = c("T4" = "blue", "T5" = "green", "T6" = "red")) +  
+  labs(x = "Date", 
+       y = "Rendement", 
+       title = "Rendements des titres T4, T5 et T6",
+       subtitle = "Du 1er janvier au 31 décembre 2023",
+       color = "Titre") +  
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"), 
+        legend.position = "right")  
+
+
+#T7 T8 T9
+ggplot() +
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T7, color = "T7"), size = 0.1) +  
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T8, color = "T8"), size = 0.1) +  
+  geom_line(data = BaseEA, aes(x = Date, y = rendement_T9, color = "T9"), size = 0.1) +  
+  scale_color_manual(values = c("T7" = "blue", "T8" = "green", "T9" = "red")) +  
+  labs(x = "Date", 
+       y = "Rendement", 
+       title = "Rendements des titres T7, T8 et T9",
+       subtitle = "Du 1er janvier au 31 décembre 2023",
+       color = "Titre") +  
+  theme_minimal() +
+  theme(plot.title = element_text(face = "bold"), 
+        legend.position = "right")  
+```
+
+### Boxplots de chaque fonds :
+
+```{r}
+
+
+# Configurer la disposition de la grille de graphiques
+par(mfrow = c(3, 3))
+
+# Boucle pour créer un boxplot pour chaque colonne T1 à T9
+for(i in 2:10) {
+  boxplot(BaseEA[[i]], main = names(BaseEA)[i], col = "deepskyblue3")
+}
+
+str(BaseEA$T1)
+
+```
+
+-   **Actif T1** : La distribution des prix de l'actif T1 montre une médiane inférieure à la moyenne, indiquant une distribution légèrement asymétrique avec une queue plus lourde sur la droite. La présence de peu de valeurs aberrantes indique que les prix extrêmes ne sont pas communs pour cet actif.
+
+-   **Actif T2** : L'actif T2 présente une distribution plus symétrique, avec une médiane proche du centre de la boîte, indiquant une répartition plus équilibrée des prix. Les moustaches sont proportionnellement longues, suggérant une volatilité modérée.
+
+-   **Actif T3** : Ce fonds montre une distribution dont la médiane est proche du premier quartile, ce qui pourrait indiquer une asymétrie positive, avec des valeurs majoritairement concentrées vers le bas de la distribution.
+
+-   **Actif T4** : La distribution des prix de l'actif T4 est assez étendue, comme en témoigne la longueur de la boîte. Cela peut indiquer une variabilité relativement élevée des prix. La médiane se situe légèrement au-dessus du milieu de la boîte.
+
+-   **Actif T5** : Les prix de l'actif T5 montrent une distribution étroite avec des moustaches relativement courtes, indiquant une volatilité plus faible. La médiane est centrée, suggérant une distribution symétrique.
+
+-   **Actif T6** : L'actif T6 révèle également une distribution symétrique avec une volatilité modérée. La boîte est plus centrée, et il n'y a pas de valeurs aberrantes visibles.
+
+-   **Actif T7** : La distribution des prix de l'actif T7 est serrée avec des moustaches courtes, indiquant une faible volatilité. La médiane est centrée, ce qui montre une distribution équilibrée des données.
+
+-   **Actif T8** : Pour l'actif T8, les prix sont plus variés, avec des moustaches qui s'étendent davantage. La médiane se trouve près du premier quartile, indiquant une légère asymétrie vers des valeurs inférieures.
+
+-   **Actif T9** : Enfin, l'actif T9 affiche une distribution relativement symétrique et équilibrée des prix, avec une boîte de taille moyenne et des moustaches proportionnées.
+
+### Statistiques descriptives :
+
+```{r}
+
+calculer_stats <- function(data) {
+  return(list(
+    Moyenne = mean(data, na.rm = TRUE),
+    Variance = var(data, na.rm = TRUE),
+    Ecart_Type = sd(data, na.rm = TRUE),
+    Asymetrie = skewness(data, na.rm = TRUE),
+    Kurtosis = kurtosis(data, na.rm = TRUE)
+  ))
+}
+
+
+stats_T1 = calculer_stats(BaseEA$T1)
+stats_T2 = calculer_stats(BaseEA$T2)
+stats_T3 = calculer_stats(BaseEA$T3)
+stats_T4 = calculer_stats(BaseEA$T4)
+stats_T5 = calculer_stats(BaseEA$T5)
+stats_T6 = calculer_stats(BaseEA$T6)
+stats_T7 = calculer_stats(BaseEA$T7)
+stats_T8 = calculer_stats(BaseEA$T8)
+stats_T9 = calculer_stats(BaseEA$T9)
+
+
+stats_T1
+stats_T2
+stats_T3
+stats_T4
+stats_T5
+stats_T6
+stats_T7
+stats_T8
+stats_T9
+
+mean(BaseEA$rendement_T1, na.rm = TRUE)
+mean(BaseEA$rendement_T2, na.rm = TRUE)
+mean(BaseEA$rendement_T3, na.rm = TRUE)
+mean(BaseEA$rendement_T4, na.rm = TRUE)
+mean(BaseEA$rendement_T5, na.rm = TRUE)
+mean(BaseEA$rendement_T6, na.rm = TRUE)
+mean(BaseEA$rendement_T7, na.rm = TRUE)
+mean(BaseEA$rendement_T8, na.rm = TRUE)
+mean(BaseEA$rendement_T9, na.rm = TRUE)
+
+```
+
+### Mésure de performances :
+
+```{r}
+#Sharpe 
+taux_sans_risque <- 0.005
+
+risk_free_rate <- 0.005
+
+calcule_sharpe <- function(rendements) {
+  rendements <- rendements[-1]
+  excess_returns <- rendements - risk_free_rate
+  sharpe_ratio <- mean(excess_returns, na.rm = TRUE) / sd(excess_returns, na.rm = TRUE)
+  return(sharpe_ratio)
+}
+
+sharpe_ratios <- sapply(BaseEA[,paste0("rendement_T", 1:9)], calcule_sharpe)
+
+sharpe_ratios
+
+
+#Sortino 
+
+
+calcule_sortino <- function(asset_returns, risk_free_rate) {
+  mean_return <- mean(asset_returns, na.rm = TRUE)
+  
+  negative_returns <- asset_returns - risk_free_rate
+  negative_returns[negative_returns > 0] <- 0
+  downside_deviation <- sqrt(mean(negative_returns^2, na.rm = TRUE))
+  
+  sortino_ratio <- (mean_return - risk_free_rate) / downside_deviation
+  return(sortino_ratio)
+}
+
+risk_free_rate <- 0.005
+
+sortino_ratios <- sapply(1:9, function(i) {
+  asset_returns <- BaseEA[[paste0("rendement_T", i)]]
+  calcule_sortino(asset_returns, risk_free_rate)
+})
+
+names(sortino_ratios) <- paste0("Sortino_T", 1:9)
+
+print(sortino_ratios)
+
+
+
+#Roy 
+
+calcule_roy <- function(asset_returns, risk_free_rate) {
+  mean_return <- mean(asset_returns, na.rm = TRUE)
+  sd_return <- sd(asset_returns, na.rm = TRUE)
+  roy_ratio <- (mean_return - risk_free_rate) / sd_return
+  return(roy_ratio)
+}
+
+risk_free_rate <- 0.005
+
+roy_ratios <- sapply(1:9, function(i) {
+  asset_returns <- BaseEA[[paste0("rendement_T", i)]]
+  calcule_roy(asset_returns, risk_free_rate)
+})
+
+names(roy_ratios) <- paste0("Roy_T", 1:9)
+
+print(roy_ratios)
+
+
+# Ratio de Treynor 
+
+rendements_T1 <- xts(BaseEA_Rendement$rendement_T1, order.by = as.Date(BaseEA_Rendement$Date))
+rendements_T2 <- xts(BaseEA_Rendement$rendement_T2, order.by = as.Date(BaseEA_Rendement$Date))
+rendements_T3 <- xts(BaseEA_Rendement$rendement_T3, order.by = as.Date(BaseEA_Rendement$Date))
+rendements_T4 <- xts(BaseEA_Rendement$rendement_T4, order.by = as.Date(BaseEA_Rendement$Date))
+rendements_T5 <- xts(BaseEA_Rendement$rendement_T5, order.by = as.Date(BaseEA_Rendement$Date))
+rendements_T6 <- xts(BaseEA_Rendement$rendement_T6, order.by = as.Date(BaseEA_Rendement$Date))
+rendements_T7 <- xts(BaseEA_Rendement$rendement_T7, order.by = as.Date(BaseEA_Rendement$Date))
+rendements_T8 <- xts(BaseEA_Rendement$rendement_T8, order.by = as.Date(BaseEA_Rendement$Date))
+rendements_T9 <- xts(BaseEA_Rendement$rendement_T9, order.by = as.Date(BaseEA_Rendement$Date))
+
+Treynor1 <- round(TreynorRatio(rendements_T1, rendements_T2), 5)
+Treynor2 <- round(TreynorRatio(rendements_T1, rendements_T3), 5)
+Treynor3 <- round(TreynorRatio(rendements_T1, rendements_T4), 5)
+Treynor4 <- round(TreynorRatio(rendements_T1, rendements_T5), 5)
+Treynor5 <- round(TreynorRatio(rendements_T1, rendements_T6), 5)
+Treynor6 <- round(TreynorRatio(rendements_T1, rendements_T7), 5)
+Treynor7 <- round(TreynorRatio(rendements_T1, rendements_T8), 5)
+Treynor8 <- round(TreynorRatio(rendements_T1, rendements_T9), 5)
+Treynor9 <- round(TreynorRatio(rendements_T1, rendements_T1), 5)
+print(Treynor1)
+print(Treynor2)
+print(Treynor3)
+print(Treynor4)
+print(Treynor5)
+print(Treynor6)
+print(Treynor7)
+print(Treynor8)
+Treynor9
+
+# Ratio de l'information
+RatioInfo <- R/O
+RatioInfo
+
+
+
+
+```
+
+### Matrice Variance-Covariance :
+
+```{r}
+matrice_cov <- cov(BaseEA[, c("T1", "T2", "T3", "T4", "T5", "T6", "T7", "T8", "T9")], use = "pairwise.complete.obs")
+
+print(matrice_cov)
+
+```
+
+### Matrice de corrélation :
+
+```{r}
+
+rendements <- BaseEA %>% 
+  select(starts_with("rendement_T"))
+
+matrice_corr <- cor(rendements, use = "complete.obs")
+
+
+corrplot(matrice_corr, method = "circle", type = "upper", order = "hclust", 
+         addCoef.col = "black", tl.col = "black", tl.srt = 45)
+
+
+
+```
+
+## Partie 2 : Théorie Moderne de Portefeuille
+
+### Rendement du portefeuille équipondéré
+
+```{r}
+
+BaseEA_Rendement=BaseEA[,c(1,19:27)]
+View(BaseEA_Rendement)
+BaseEA_Rendement=na.omit(BaseEA_Rendement)
+
+
+
+Rdmts_equi<-Return.portfolio(BaseEA_Rendement)
+View(Rdmts_equi)
+
+Portefeuille_equi <- data.table(Rdmts_equi)
+View(Portefeuille_equi)
+
+
+mean(Portefeuille_equi$portfolio.returns)
+sd(Portefeuille_equi$portfolio.returns)
+
+Base_rdmt_port<-cbind(BaseEA_Rendement,Portefeuille_equi,fill=T)
+View(Base_rdmt_port)
+
+
+
+
+```
+
+Ainsi, la moyenne des rendements du portefeuille équipondéré est de 0.0007429736 ; donc , en moyenne , le portefeuille a réalisé un rendement de 0.0007429 sur une période de 209 jours.
+
+#### Représentation risque-rendement
+
+```{r}
+# Transformer la base de données de rendements en un format "long"
+
+long_format <- melt(as.data.table(BaseEA ,Portefeuille_equi), id.vars = "Date", 
+                    measure.vars = patterns("^rendement"))
+
+long_format <- long_format[complete.cases(long_format$value), ]
+
+# Calculer les statistiques de rendement pour chaque fonds
+
+tab <- long_format[, .(Mean = round(mean(value), 6),
+                       StandardDeviation = round(sd(value), 6)),
+                   by = variable]
+
+print(tab)
+
+mean(tab$Mean)
+sd(tab$StandardDeviation)
+
+# Créer le graphique risque-rendement
+plot_moyvar <- ggplot(tab, aes(x = StandardDeviation, y = Mean, color = variable)) +
+  geom_point(size = 4) +
+  theme_light() +
+  labs(title = "Risk-Return Tradeoff",
+       x = "Volatility",
+       y = "Expected Returns",
+       caption = "Data source: Yahoo Finance") +
+  scale_y_continuous(labels = scales::percent) +
+  scale_x_continuous(labels = scales::percent) +
+  theme(
+    plot.title = element_text(color = "red", size = 12, face = "bold"),
+    plot.caption = element_text(color = "azure4", face = "plain")
+  )
+
+
+print(plot_moyvar)
+
+
+
+```
+
+##### deduction
+
+```{r}
+#ratio rendement / écart-type pour chaque période de temps
+inefficience_T1 <- tab[variable == "rendement_T1", Mean / StandardDeviation]
+inefficience_T2 <- tab[variable == "rendement_T2", Mean / StandardDeviation]
+inefficience_T3 <- tab[variable == "rendement_T3", Mean / StandardDeviation]
+inefficience_T4 <- tab[variable == "rendement_T4", Mean / StandardDeviation]
+inefficience_T5 <- tab[variable == "rendement_T5", Mean / StandardDeviation]
+inefficience_T6 <- tab[variable == "rendement_T6", Mean / StandardDeviation]
+inefficience_T7 <- tab[variable == "rendement_T7", Mean / StandardDeviation]
+inefficience_T8 <- tab[variable == "rendement_T8", Mean / StandardDeviation]
+inefficience_T9 <- tab[variable == "rendement_T9", Mean / StandardDeviation]
+
+
+
+print(inefficience_T1)
+print(inefficience_T2)
+print(inefficience_T3)
+print(inefficience_T4)
+print(inefficience_T5)
+print(inefficience_T6)
+print(inefficience_T7)
+print(inefficience_T8)
+print(inefficience_T9)
+
+
+```
+
+Après avoir calculé le ratio rendement / écart-type pour chaque période de temps, nous pouvons identifier les titres les plus inefficaces en fonction de ce critère. Les titres les plus inefficaces sont ceux qui présentent les ratios les plus élevés, ce qui signifie qu'ils offrent un rendement relativement faible par rapport à leur niveau de risque.Dans notre cas , le titre le plus inéfficient est le T3 , ANDE , suivi de Amundi_CPR_Climate_Action_I.
+
+### 
+
+### Suite en ne considérant que les séries T1, T2 et T3
+
+### Frontière d'efficience
+
+```{r}
+
+# Création du tableau de données
+
+data <- data.table(BaseEA_Rendement$rendement_T1 , BaseEA_Rendement$rendement_T2, BaseEA_Rendement$rendement_T3)
+names(data) <- c("x", "y", "z")
+
+
+View(data)
+
+data=na.omit(data)
+
+View(data)
+
+# Esperance de rentabilité
+Ex <- mean(data$x)
+
+Ey <- mean(data$y)
+Ez <- mean(data$z)
+# Ecart-type = risque
+Sdx <- sd(data$x)
+Sdy <- sd(data$y)
+
+Sdz <- sd(data$z)
+
+
+# Covariance
+Covxy <- cov(data$x, data$y)
+
+Covxz <- cov(data$x, data$z)
+Covyz <- cov(data$y, data$z)
+
+# Création d'un portefeuille des poids
+xpoids <- seq(from = 0, to = 1, length.out = 1000)
+
+# Création d'une table avec les 3 titres
+Titre <- data.table(wx = rep(xpoids, each = length(xpoids)),
+                          wy = rep(xpoids, length(xpoids)))
+Titre[, wz := 1 - wx - wy]
+
+# Calcul des esperance de rentabilité et de la volatilité pour les 1000 portefeuille possibles
+Titre[, `:=` (Ep = wx * Ex + wy * Ey + wz * Ez,
+                    Sdp = sqrt(wx^2 * Sdx^2 +
+                                wy^2 * Sdy^2 +
+                                wz^2 * Sdz^2 +
+                                2 * wx * wy * Covxy +
+                                2 * wx * wz * Covxz +
+                                2 * wy * wz * Covyz))]
+
+
+# On garde seulement les poids supérieurs ou égaux à 0
+Titre <- Titre[wx >= 0 & wy >= 0 & wz >= 0]
+
+
+
+# Graphique de la frontière d'efficience des portefeuilles
+plot = ggplot() +
+  geom_point(data = Titre, aes(x = Sdp, y = Ep, color = wx - wz)) +
+  geom_point(data = data.table(Sd = c(Sdx, Sdy, Sdz), E = c(Ex, Ey, Ez)),
+             aes(x = Sd, y = E), color = "black", size = 3, shape = 18) +
+  theme_light() + ggtitle("Frontière d'efficience du portefeuille composé de T1, T2, T3") +
+  xlab("Volatilité") + ylab("Espérance de rentabilité") +
+  scale_y_continuous(label = scales::percent, limits = c(0.001, max(Titre$Ep) * 1.2)) +
+  scale_x_continuous(label = scales::percent, limits = c(0.001, max(Titre$Sdp) * 1.2)) +
+  scale_color_gradientn(colors = c("orange", "lightgoldenrodyellow", "red"),
+                        name = expression(omega[x] - omega[z]), labels = scales::percent)
+
+plot = plot + labs(title = "Frontière d'efficience du portefeuille",
+                   subtitle = "composé des actifs T1, T2, T3",
+                   caption = "Data source: Yahoo Finance") 
+
+plot = plot + theme(
+  plot.title = element_text(color = "black", size = 12, face = "bold"),
+  plot.subtitle = element_text(color = "grey3", size = 9),
+  plot.caption = element_text(color = "azure4", face = "plain")
+)
+
+plot = plot +
+  coord_cartesian(xlim = c(0, max(Titre$Sdp) * 1.2), ylim = c(0, max(Titre$Ep) * 1.2))
+
+
+plot
+
+
+```
+
+#### 
+
+### Portefeuille de variance minimale
+
+```{r}
+## Portefeuille de variance minimale 
+assetSymbols <- c('T1','T2','T3')
+assetReturns <- data
+assetReturns <- data.frame(assetReturns)
+mu <- colMeans(assetReturns) 
+cov.mat <- cov(assetReturns) 
+
+getMinVariancePortfolio <- function(mu,covMat,assetSymbols) {
+  U <- rep(1, length(mu)) 
+  O <- solve(covMat)    
+  w <- O%*%U /as.numeric(t(U)%*%O%*% U)
+  Risk <- sqrt(t(w) %*% covMat %*% w)
+  ExpReturn <- t(w) %*% mu
+  Weights <- `names<-`(round(w, 5), assetSymbols)
+  list(Weights = t(Weights),
+       ExpReturn = round(as.numeric(ExpReturn), 5),
+       Risk = round(as.numeric(Risk), 5))
+}
+
+Pf_VM <- getMinVariancePortfolio(mu, cov.mat,assetSymbols)
+
+print(Pf_VM)
+
+
+```
+
+Notre portefeuille de variance minimale est composé des poids suivants pour chaque actif :
+
+**T1: 34.177% ; T2: 1.034% ; T3: 64.788%**
+
+Le rendement espéré de notre portefeuille est d'environ 0.064%, avec un écart-type (risque) d'environ 0.007. Il représente la combinaison optimale d'actifs pour minimiser le risque tout en maintenant un certain niveau de rendement.
+
+### **Portefeuille tangent**
+
+```{r}
+
+
+# Portefeuille tangent
+assetsNames <- c('rendement_T1', 'rendement_T2', 'rendement_T3')
+E <- c(Ex, Ey, Ez)
+
+# Rendement de l'actif sans risque
+r.free <- 2.5 / 100  # en pourcentage
+
+# Matrice de covariance des rendements
+cov.mat <- cov(assetReturns) 
+
+# Vecteur des rendements espérés
+E <- as.vector(E)
+
+# Calcul de l'inverse de la matrice de covariance
+cov.mat <- as.matrix(cov.mat)
+cov.mat.inv <- solve(cov.mat)
+
+# Calcul des poids du portefeuille tangent
+w.t <- cov.mat.inv %*% (E - r.free)
+w.t <- as.vector(w.t / sum(w.t))
+
+# Nom des actifs
+names(w.t) <- assetsNames
+
+# Rendement espéré du portefeuille tangent
+E.t <- crossprod(w.t, E)
+
+# Écart-type du portefeuille tangent
+Sd.t <- sqrt(t(w.t) %*% cov.mat %*% w.t)
+
+# Stockage des résultats dans une liste
+PTangent <- list("Weights" = w.t,
+                 "ExpReturn" = as.vector(E.t),
+                 "Risk" = as.vector(Sd.t))
+
+PTangent
+
+
+
+```
+
+Les poids du portefeuille tangent sont approximativement :
+
+**rendement_T1:** 34.40% **rendement_T2:** 0.16% **rendement_T3:** 65.44%
+
+Le **rendement espéré** du portefeuille tangent est d'environ **0.062%.**
+
+**L'écart-type** (risque) du portefeuille tangent est d'environ **0.007**.
+
+Cela signifie que, avec le portefeuille tangent, vous obtenez un rendement espéré d'environ 0.062% avec un écart-type de 0.007, en tenant compte d'un taux sans risque de 2.5%.
